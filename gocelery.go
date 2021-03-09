@@ -79,10 +79,14 @@ func (cc *CeleryClient) DelayKwargs(task string, args map[string]interface{}) (*
 
 // GetResult returns an AsyncResult which can then be queried for task state
 func (cc *CeleryClient) GetResult(TaskID string) *AsyncResult {
-	return &AsyncResult{
+	ar := &AsyncResult{
 		TaskID:  TaskID,
 		backend: cc.backend,
 	}
+
+	ar.Get()
+
+	return ar
 }
 
 func (cc *CeleryClient) delay(task *TaskMessage) (*AsyncResult, error) {
@@ -156,8 +160,24 @@ func (ar *AsyncResult) AsyncGet() (interface{}, error) {
 		return nil, err
 	}
 	if val.Status != "SUCCESS" {
-        ar.Result = val
+		ar.Result = val
 		return nil, fmt.Errorf("error response status %v", val)
+	}
+	ar.Result = val
+	return val.Result, nil
+}
+
+// AsyncFetch gets the result from the backend and returns it whether its ready or not
+func (ar *AsyncResult) AsyncFetch() (interface{}, error) {
+	if ar.Result != nil {
+		return ar.Result.Result, nil
+	}
+	val, err := ar.backend.GetResult(ar.TaskID)
+	if err != nil {
+		return nil, err
+	}
+	if val == nil {
+		return nil, err
 	}
 	ar.Result = val
 	return val.Result, nil
