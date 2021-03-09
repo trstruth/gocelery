@@ -84,7 +84,7 @@ func (cc *CeleryClient) GetResult(TaskID string) *AsyncResult {
 		backend: cc.backend,
 	}
 
-	ar.Get()
+	ar.Get(500 * time.Millisecond)
 
 	return ar
 }
